@@ -9,9 +9,9 @@ public class CoalGenerator
     [XmlElement("Generation")]
     public Generation Generation { get; set; }
     [XmlElement("TotalHeatInput")]
-    public string TotalHeatInput { get; set; }
+    public double TotalHeatInput { get; set; }
     [XmlElement("ActualNetGeneration")]
-    public string ActualNetGeneration { get; set; }
+    public double ActualNetGeneration { get; set; }
     [XmlElement("EmissionsRating")]
     public double EmissionsRating { get; set; }
 }

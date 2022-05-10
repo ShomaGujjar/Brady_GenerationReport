@@ -8,5 +8,5 @@ public class ActualHeatRate
     [XmlElement("Name")]
     public string Name { get; set; }
     [XmlElement("HeatRate")]
-    public string HeatRate { get; set; }
+    public double HeatRate { get; set; }
 }

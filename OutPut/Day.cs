@@ -10,5 +10,5 @@ public class Day
     [XmlElement("Date")]
     public string Date { get; set; }
     [XmlElement("Emission")]
-    public string Emission { get; set; }
+    public double Emission { get; set; }
 }

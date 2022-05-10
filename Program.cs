@@ -16,13 +16,10 @@ static void Main()
 
 static void CalculateTotalGenerationValue()
 {
-    //Console.WriteLine("Calculating Total Generation Value!");
-    //Read input location from config
+    Console.WriteLine("Calculating Total Generation Value!");
     string path = @"C:\Projects\Interviews\Input";
     MonitorDirectory(path);
     Console.ReadKey();
-    //ping input location for any valid xml file
-    //once valid xml file is found perform calculation and produce out put file in xml format
 }
 
 static void MonitorDirectory(string path)
@@ -88,15 +85,22 @@ static void DataProcessing(GenerationReport report)
         generators.Add(new Generator { Name = windGeneratorName, Total = totalWindGenerationValue });
     }
 
+    var outPutDays = new List<Day>();
+
     //Gas
     var gasGenerator = report.Gas.GasGenerator;
     var emissionRating = gasGenerator.EmissionsRating;
     double totalGasGenerationValue = 0.0;
-    double totalDailyEmission = 0.0;
     foreach (var day in gasGenerator.Generation.Days)
     {
         totalGasGenerationValue += day.Energy * day.Price * valueFactor.Medium;
-        totalDailyEmission += day.Energy * emissionRating * emissionFactor.Medium;
+        var emission = day.Energy * emissionRating * emissionFactor.Medium;
+        outPutDays.Add(new Day
+        {
+            Date = day.Date,
+            Emission = emission,
+            Name = gasGenerator.Name
+        });
     }
     generators.Add(new Generator { Name = gasGenerator.Name, Total = totalGasGenerationValue });
 
@@ -104,13 +108,26 @@ static void DataProcessing(GenerationReport report)
     var coalGenerator = report.Coal.CoalGenerator;
     var coalEmissionRating = coalGenerator.EmissionsRating;
     double totalCoalGenerationValue = 0.0;
-    double totalCoalDailyEmission = 0.0;
     foreach (var day in coalGenerator.Generation.Days)
     {
         totalCoalGenerationValue += day.Energy * day.Price * valueFactor.Medium;
-        totalCoalDailyEmission += day.Energy * coalEmissionRating * emissionFactor.Medium;
+        var coalEmission = day.Energy * coalEmissionRating * emissionFactor.High;
+        outPutDays.Add(new Day
+        {
+            Date = day.Date,
+            Emission = coalEmission,
+            Name = coalGenerator.Name
+        });
     }
     generators.Add(new Generator { Name = coalGenerator.Name, Total = totalCoalGenerationValue });
+
+    //Calculate Actual Heat Rate = TotalHeatInput / ActualNetGeneration
+    var actualHeatRateValue = coalGenerator.TotalHeatInput / coalGenerator.ActualNetGeneration;
+    ActualHeatRate actualHeatRate = new ActualHeatRate()
+    {
+        Name = coalGenerator.Name,
+        HeatRate = actualHeatRateValue
+    };
 
     Totals totals = new Totals()
     {
@@ -119,12 +136,12 @@ static void DataProcessing(GenerationReport report)
 
     MaxEmissionGenerators maxEmissionGenerators = new MaxEmissionGenerators()
     {
-        Day = new List<Day>()
+        Day = outPutDays
     };
 
     ActualHeatRates actualHeatRates = new ActualHeatRates()
     {
-        ActualHeatRate = new ActualHeatRate()
+        ActualHeatRate = actualHeatRate
     };
 
     GenerationOutput output = new GenerationOutput()
@@ -133,6 +150,16 @@ static void DataProcessing(GenerationReport report)
         MaxEmissionGenerators = maxEmissionGenerators,
         ActualHeatRates = actualHeatRates
     };
-    //Calculate highest Daily Emissions = Energy x EmissionRating x EmissionFactor for for Coal and Gas
-    //Calculate Actual Heat Rate = TotalHeatInput / ActualNetGeneration
+    //CreateOutPutFile
+    CreateOutputXmlFile(path, output);
+}
+
+static void CreateOutputXmlFile(string path, GenerationOutput output)
+{
+    //Create an output file based on input
+    XmlSerializer writer = new XmlSerializer(typeof(GenerationOutput));
+    string filename = $"{path}\\01-Output.xml";
+    FileStream file = File.Create(filename);
+    writer.Serialize(file, output);
+    file.Close();
 }

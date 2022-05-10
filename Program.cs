@@ -2,21 +2,23 @@
 
 using System.Xml;
 using System.Xml.Serialization;
+using Brady_GenerationReport;
 using Brady_GenerationReport.Input;
 using Brady_GenerationReport.OutPut;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Day = Brady_GenerationReport.Output.Day;
 
 Console.WriteLine("Hello, Brady!");
-Main();
-
-static void Main()
-{
-    CalculateTotalGenerationValue();
-}
+Console.WriteLine("Waiting for input file to be dropped.....!");
+CalculateTotalGenerationValue();
 
 static void CalculateTotalGenerationValue()
 {
     Console.WriteLine("Calculating Total Generation Value!");
+    var secretValues = SecretAppsettingReader.ReadSection<FolderLocations>("FolderLocations");
+    var test = "%FolderLocations:input%";
     string path = @"C:\Projects\Interviews\Input";
     MonitorDirectory(path);
     Console.ReadKey();

@@ -3,6 +3,8 @@
 using System.Xml;
 using System.Xml.Serialization;
 using Brady_GenerationReport.Input;
+using Brady_GenerationReport.OutPut;
+using Day = Brady_GenerationReport.Output.Day;
 
 Console.WriteLine("Hello, Brady!");
 Main();
@@ -63,9 +65,11 @@ static ReferenceData ReadReferenceDataFile(string path)
 
 static void DataProcessing(GenerationReport report)
 {
+    //Create output xml file
+    List<Generator> generators = new List<Generator>();
     string path = @"C:\Projects\Interviews\Brady_GenerationReport\ReferenceData\";
     var referenceData = ReadReferenceDataFile(path);
-    //Calculate Total Generation Value = Energy x Price x ValueFactor
+
     //Wind
     var valueFactor = referenceData.Factors.ValueFactor;
     var emissionFactor = referenceData.Factors.EmissionsFactor;
@@ -73,22 +77,62 @@ static void DataProcessing(GenerationReport report)
     foreach (var windGenerator in windGenerators)
     {
         var days = windGenerator.Generation.Days;
-        var location = windGenerator.Location;
-        var name = windGenerator.Name;
+        var windGeneratorName = windGenerator.Name;
+        double totalWindGenerationValue = 0.0;
+        var actualValueFactor = windGeneratorName == "Wind[Offshore]" ? valueFactor.Low : valueFactor.High;
         foreach (var day in days)
         {
-            //double valueFactor;
-            var value = location == "Offshore" ? valueFactor.Low : valueFactor.High;
-            var dailyGenerationValue = day.Energy * day.Price * value;
+            //Daily Generation Value 
+            totalWindGenerationValue += day.Energy * day.Price * actualValueFactor;
         }
-
+        generators.Add(new Generator { Name = windGeneratorName, Total = totalWindGenerationValue });
     }
 
     //Gas
-
     var gasGenerator = report.Gas.GasGenerator;
+    var emissionRating = gasGenerator.EmissionsRating;
+    double totalGasGenerationValue = 0.0;
+    double totalDailyEmission = 0.0;
+    foreach (var day in gasGenerator.Generation.Days)
+    {
+        totalGasGenerationValue += day.Energy * day.Price * valueFactor.Medium;
+        totalDailyEmission += day.Energy * emissionRating * emissionFactor.Medium;
+    }
+    generators.Add(new Generator { Name = gasGenerator.Name, Total = totalGasGenerationValue });
+
     //Coal
     var coalGenerator = report.Coal.CoalGenerator;
+    var coalEmissionRating = coalGenerator.EmissionsRating;
+    double totalCoalGenerationValue = 0.0;
+    double totalCoalDailyEmission = 0.0;
+    foreach (var day in coalGenerator.Generation.Days)
+    {
+        totalCoalGenerationValue += day.Energy * day.Price * valueFactor.Medium;
+        totalCoalDailyEmission += day.Energy * coalEmissionRating * emissionFactor.Medium;
+    }
+    generators.Add(new Generator { Name = coalGenerator.Name, Total = totalCoalGenerationValue });
+
+    Totals totals = new Totals()
+    {
+        Generator = generators
+    };
+
+    MaxEmissionGenerators maxEmissionGenerators = new MaxEmissionGenerators()
+    {
+        Day = new List<Day>()
+    };
+
+    ActualHeatRates actualHeatRates = new ActualHeatRates()
+    {
+        ActualHeatRate = new ActualHeatRate()
+    };
+
+    GenerationOutput output = new GenerationOutput()
+    {
+        Totals = totals,
+        MaxEmissionGenerators = maxEmissionGenerators,
+        ActualHeatRates = actualHeatRates
+    };
     //Calculate highest Daily Emissions = Energy x EmissionRating x EmissionFactor for for Coal and Gas
     //Calculate Actual Heat Rate = TotalHeatInput / ActualNetGeneration
 }

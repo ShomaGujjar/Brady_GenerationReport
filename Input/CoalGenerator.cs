@@ -13,5 +13,5 @@ public class CoalGenerator
     [XmlElement("ActualNetGeneration")]
     public string ActualNetGeneration { get; set; }
     [XmlElement("EmissionsRating")]
-    public string EmissionsRating { get; set; }
+    public double EmissionsRating { get; set; }
 }

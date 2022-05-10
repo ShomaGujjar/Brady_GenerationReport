@@ -8,5 +8,5 @@ public class Generator
     [XmlElement("Name")]
     public string Name { get; set; }
     [XmlElement("Total")]
-    public string Total { get; set; }
+    public double Total { get; set; }
 }

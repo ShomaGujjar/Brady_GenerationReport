@@ -6,8 +6,10 @@ public class GasGenerator
 {
     [XmlElement("Name")]
     public string Name { get; set; }
+
     [XmlElement("Generation")]
     public Generation Generation { get; set; }
+
     [XmlElement("EmissionsRating")]
-    public string EmissionsRating { get; set; }
+    public double EmissionsRating { get; set; }
 }

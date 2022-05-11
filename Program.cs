@@ -5,69 +5,57 @@ using System.Xml.Serialization;
 using Brady_GenerationReport;
 using Brady_GenerationReport.Input;
 using Brady_GenerationReport.OutPut;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Day = Brady_GenerationReport.Output.Day;
 
 Console.WriteLine("Hello, Brady!");
-Console.WriteLine("Waiting for input file to be dropped.....!");
-CalculateTotalGenerationValue();
+var path = AppsettingReader.ReadSection<ConfigLocations>("ConfigLocations");
 
-static void CalculateTotalGenerationValue()
+CalculateTotalGenerationValue(path);
+
+static void CalculateTotalGenerationValue(ConfigLocations? path)
 {
     Console.WriteLine("Calculating Total Generation Value!");
-    var secretValues = SecretAppsettingReader.ReadSection<FolderLocations>("FolderLocations");
-    var test = "%FolderLocations:input%";
-    string path = @"C:\Projects\Interviews\Input";
     MonitorDirectory(path);
     Console.ReadKey();
 }
 
-static void MonitorDirectory(string path)
+static void MonitorDirectory(ConfigLocations? path)
 {
-    FileSystemWatcher fileSystemWatcher = new FileSystemWatcher
+    Console.WriteLine("Waiting for input file to be dropped.....");
+    if (path != null)
     {
-        Path = path,
-        Filter = "*.xml",
-        EnableRaisingEvents = true
-    };
-    fileSystemWatcher.Created += FileSystemWatcherCreated;
+        FileSystemWatcher fileSystemWatcher = new FileSystemWatcher
+        {
+            Path = path.Input,
+            Filter = "*.xml",
+            EnableRaisingEvents = true
+        };
+        fileSystemWatcher.Created += FileSystemWatcherCreated;
+    }
 }
 
 static void FileSystemWatcherCreated(object sender, FileSystemEventArgs e)
 {
     Console.WriteLine("File created: {0}", e.Name);
-    var report = PerformParsingOfTheXmlFile(@"C:\Projects\Interviews\Input");
+    var report = PerformParsingOfTheXmlFile(e.FullPath);
     //once valid xml file is found perform calculation and produce out put file in xml format
-    DataProcessing(report);
+    DataProcessing(report, e.Name);
     Console.WriteLine("XML file parsed");
 }
 
 static GenerationReport PerformParsingOfTheXmlFile(string path)
 {
-    string filename = $"{path}\\01-Basic.xml";
-    XmlReader reader = XmlReader.Create(filename);
+    XmlReader reader = XmlReader.Create(path);
     XmlSerializer xmlSerializer = new XmlSerializer(typeof(GenerationReport));
     var generationReport = (GenerationReport)xmlSerializer.Deserialize(reader);
     return generationReport;
 }
 
-static ReferenceData ReadReferenceDataFile(string path)
-{
-    string filename = $"{path}\\ReferenceData.xml";
-    XmlReader reader = XmlReader.Create(filename);
-    XmlSerializer xmlSerializer = new XmlSerializer(typeof(ReferenceData));
-    ReferenceData referenceData = (ReferenceData)xmlSerializer.Deserialize(reader);
-    return referenceData;
-}
-
-static void DataProcessing(GenerationReport report)
+static void DataProcessing(GenerationReport report, string inputFileName)
 {
     //Create output xml file
     List<Generator> generators = new List<Generator>();
-    string path = @"C:\Projects\Interviews\Brady_GenerationReport\ReferenceData\";
-    var referenceData = ReadReferenceDataFile(path);
+    var referenceData = ReadReferenceDataFile();
 
     //Wind
     var valueFactor = referenceData.Factors.ValueFactor;
@@ -153,14 +141,25 @@ static void DataProcessing(GenerationReport report)
         ActualHeatRates = actualHeatRates
     };
     //CreateOutPutFile
-    CreateOutputXmlFile(path, output);
+    CreateOutputXmlFile(inputFileName, output);
 }
 
-static void CreateOutputXmlFile(string path, GenerationOutput output)
+static ReferenceData ReadReferenceDataFile()
+{
+    var path = AppsettingReader.ReadSection<ConfigLocations>("ConfigLocations");
+    string filename = $"{path.ReferenceData}\\ReferenceData.xml";
+    XmlReader reader = XmlReader.Create(filename);
+    XmlSerializer xmlSerializer = new XmlSerializer(typeof(ReferenceData));
+    ReferenceData referenceData = (ReferenceData)xmlSerializer.Deserialize(reader);
+    return referenceData;
+}
+
+static void CreateOutputXmlFile(string inputFileName, GenerationOutput output)
 {
     //Create an output file based on input
+    var path = AppsettingReader.ReadSection<ConfigLocations>("ConfigLocations");
     XmlSerializer writer = new XmlSerializer(typeof(GenerationOutput));
-    string filename = $"{path}\\01-Output.xml";
+    string filename = $"{path.Output}\\{Path.GetFileNameWithoutExtension(inputFileName)}-Result.xml";
     FileStream file = File.Create(filename);
     writer.Serialize(file, output);
     file.Close();
